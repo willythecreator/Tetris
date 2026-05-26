@@ -1,3 +1,5 @@
+// Tetris, because why not 
+
 #include <SDL2/SDL.h>
 #include <iostream>
 
