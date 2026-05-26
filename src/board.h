@@ -8,6 +8,7 @@ public:
     static constexpr int ROWS = 22; // 20 visible + 2 hidden above
     static constexpr int COLS = 10;
     static constexpr int HIDDEN_ROWS = 2;
+    static constexpr int VISIBLE_ROWS = 20;
 
     Board() = default;
 

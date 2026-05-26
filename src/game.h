@@ -32,7 +32,14 @@ public:
     int getScore() const;
     int getLine() const;
     int getLevel() const;
+    int ghostY() const;
     GameState getState() const;
+
+    TetrominoType getActiveType() const { return activeType; }
+    int getActiveX() const { return activeX; }
+    int getActiveY() const { return activeY; }
+    int getActiveRotation() const { return activeRotation; }
+    int getGhostY() const { return ghostY(); }
 
 private:
     Board board;
@@ -64,5 +71,4 @@ private:
     // Helpers
     void spawnPiece();
     void lockAndAdvance();
-    int ghostY() const;
 };
