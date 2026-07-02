@@ -91,6 +91,15 @@ void Renderer::drawBoard(const Game &game)
     SDL_SetRenderDrawColor(renderer, 40, 40, 50, 255);
     SDL_RenderFillRect(renderer, &bg);
 
+    // Subtle grid lines on empty cells
+    SDL_SetRenderDrawColor(renderer, 35, 35, 50, 255);
+    for (int r = 0; r < Board::VISIBLE_ROWS; ++r)
+        for (int c = 0; c < Board::COLS; ++c)
+        {
+            SDL_Rect cell = {BOARD_X + c * CELL, BOARD_Y + r * CELL, CELL, CELL};
+            SDL_RenderDrawRect(renderer, &cell);
+        }
+
     // Locked cells (skip hidden rows)
     for (int r = Board::HIDDEN_ROWS; r < Board::ROWS; ++r)
         for (int c = 0; c < Board::COLS; ++c)
@@ -111,31 +120,42 @@ void Renderer::drawBoard(const Game &game)
 void Renderer::drawCell(int row, int col, int colorIdx, Uint8 alpha)
 {
     SDL_Color c = getColor(colorIdx);
-    SDL_Rect rect = {BOARD_X + col * CELL,
-                     BOARD_Y + row * CELL,
-                     CELL, CELL};
+    int x = BOARD_X + col * CELL;
+    int y = BOARD_Y + row * CELL;
+    int s = CELL;
 
+    // Main fill
     SDL_SetRenderDrawColor(renderer, c.r, c.g, c.b, alpha);
+    SDL_Rect rect = {x, y, s, s};
     SDL_RenderFillRect(renderer, &rect);
 
-    // Lighter top left edge
+    // Inner highlight (top + left, 2px, brighter)
     SDL_SetRenderDrawColor(renderer,
-                           std::min(255, c.r + 60),
-                           std::min(255, c.g + 60),
-                           std::min(255, c.g + 60), alpha);
-    SDL_RenderDrawLine(renderer, rect.x, rect.y, rect.x + rect.w - 1, rect.y);
-    SDL_RenderDrawLine(renderer, rect.x, rect.y,
-                       rect.x, rect.y + rect.h - 1);
+                           std::min(255, c.r + 80),
+                           std::min(255, c.g + 80),
+                           std::min(255, c.b + 80), alpha);
+    SDL_RenderDrawLine(renderer, x + 1, y + 1, x + s - 2, y + 1);
+    SDL_RenderDrawLine(renderer, x + 1, y + 1, x + 1, y + s - 2);
 
-    // Darker bottom-right edge
+    // Inner shadow (bottom + right, 2px, darker)
     SDL_SetRenderDrawColor(renderer,
-                           std::max(0, c.r - 60),
-                           std::max(0, c.g - 60),
-                           std::max(0, c.g - 60), alpha);
-    SDL_RenderDrawLine(renderer, rect.x + rect.w - 1, rect.y,
-                       rect.x + rect.w - 1, rect.y + rect.h - 1);
-    SDL_RenderDrawLine(renderer, rect.x, rect.y + rect.h - 1,
-                       rect.x + rect.w - 1, rect.y + rect.h - 1);
+                           std::max(0, c.r - 80),
+                           std::max(0, c.g - 80),
+                           std::max(0, c.b - 80), alpha);
+    SDL_RenderDrawLine(renderer, x + 1, y + s - 2, x + s - 2, y + s - 2);
+    SDL_RenderDrawLine(renderer, x + s - 2, y + 1, x + s - 2, y + s - 2);
+
+    // Small shine square top-left corner
+    SDL_SetRenderDrawColor(renderer,
+                           std::min(255, c.r + 120),
+                           std::min(255, c.g + 120),
+                           std::min(255, c.b + 120), alpha);
+    SDL_Rect shine = {x + 3, y + 3, 4, 4};
+    SDL_RenderFillRect(renderer, &shine);
+
+    // Outer dark border
+    SDL_SetRenderDrawColor(renderer, 0, 0, 0, alpha);
+    SDL_RenderDrawRect(renderer, &rect);
 }
 
 // Piece rendering
@@ -261,7 +281,7 @@ void Renderer::drawOverlay(const char *text)
     if (!surf)
         return;
     SDL_Texture *tex = SDL_CreateTextureFromSurface(renderer, surf);
-    SDL_Rect dst = {(WIN_H - surf->w) / 2,
+    SDL_Rect dst = {(WIN_W - surf->w) / 2,
                     (WIN_H - surf->h) / 2,
                     surf->w, surf->h};
     SDL_RenderCopy(renderer, tex, nullptr, &dst);

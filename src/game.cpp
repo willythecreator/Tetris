@@ -66,6 +66,7 @@ TetrominoType Game::pullFromBag()
     if (bag.empty())
         refillBag();
     TetrominoType t = bag.back();
+    bag.pop_back();
     return t;
 }
 
