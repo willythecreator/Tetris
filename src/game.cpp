@@ -21,6 +21,10 @@ void Game::init()
     refillBag();
     nextType = pullFromBag();
     spawnPiece();
+
+    clearingRows.clear();
+    clearTimer = 0;
+    clearing = false;
 }
 
 void Game::spawnPiece()
@@ -41,18 +45,31 @@ void Game::spawnPiece()
 void Game::lockAndAdvance()
 {
     board.lock(activeType, activeRotation, activeX, activeY);
-    int cleared = board.clearLines();
 
-    if (cleared > 0)
+    // Find which rows are full
+    clearingRows.clear();
+    for (int r = 0; r < Board::ROWS; ++r)
     {
-        static const int lineScores[] = {0, 100, 300, 500, 800};
-        int pts = (cleared <= 4 ? lineScores[cleared] : 800) * (level + 1);
-        score += pts;
-        lines += cleared;
-        level = lines / 10;
+        bool full = true;
+        for (int c = 0; c < Board::COLS; ++c)
+            if (board.get(r, c) == 0)
+            {
+                full = false;
+                break;
+            }
+        if (full)
+            clearingRows.push_back(r);
     }
 
-    spawnPiece();
+    if (!clearingRows.empty())
+    {
+        clearing = true;
+        clearTimer = 0;
+    }
+    else
+    {
+        spawnPiece();
+    }
 }
 
 // 7 bag randomizer
@@ -89,6 +106,27 @@ void Game::update(Uint32 dt)
 {
     if (state != GameState::Playing)
         return;
+
+    // Handle line clear animation
+    if (clearing)
+    {
+        clearTimer += dt;
+        if (clearTimer >= 300)
+        {
+            int cleared = board.clearLines();
+            clearing = false;
+            clearingRows.clear();
+
+            static const int lineScores[] = {0, 100, 300, 500, 800};
+            int pts = (cleared <= 4 ? lineScores[cleared] : 800) * (level + 1);
+            score += pts;
+            lines += cleared;
+            level = lines / 10;
+
+            spawnPiece();
+        }
+        return; // freeze everything else during animation
+    }
 
     bool touching = board.isCollision(activeType, activeRotation, activeX, activeY + 1);
 
@@ -199,6 +237,50 @@ void Game::rotateCW()
     }
 }
 
+void Game::rotateCCW()
+{
+    if (state != GameState::Playing)
+        return;
+
+    int newRot = (activeRotation + 3) % 4;
+
+    static const int kicks[6][2] = {
+        {0, 0},
+        {1, 0},
+        {-1, 0},
+        {2, 0},
+        {-2, 0},
+        {0, -1},
+    };
+
+    static const int kicksI[7][2] = {
+        {0, 0},
+        {1, 0},
+        {-1, 0},
+        {2, 0},
+        {0, -1},
+        {0, -2},
+    };
+
+    bool isI = {activeType == TetrominoType::I};
+    int numKicks = isI ? 7 : 6;
+
+    for (int i = 0; i < numKicks; ++i)
+    {
+        int dx = isI ? kicksI[i][0] : kicks[i][0];
+        int dy = isI ? kicks[i][1] : kicks[i][1];
+
+        if (!board.isCollision(activeType, newRot, activeX + dx, activeY + dy))
+        {
+            activeRotation = newRot;
+            activeX += dx;
+            activeY += dy;
+            lockTimer = 0;
+            return;
+        }
+    }
+}
+
 void Game::holdPiece()
 {
     if (state != GameState::Playing || holdUsed)
@@ -257,3 +339,5 @@ int Game::getLevel() const { return level; }
 GameState Game::getState() const { return state; }
 TetrominoType Game::getHoldType() const { return holdType; }
 bool Game::getHasHold() const { return hasHold; }
+const std::vector<int> &Game::getClearingRows() const { return clearingRows; }
+bool Game::isClearing() const { return clearing; }

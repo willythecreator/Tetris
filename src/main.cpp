@@ -96,6 +96,9 @@ int main(int argc, char *argv[])
                 case SDLK_RSHIFT:
                     game.holdPiece();
                     break;
+                case SDLK_r:
+                    game.rotateCCW();
+                    break;
                 }
             }
             else if (e.type == SDL_KEYUP)

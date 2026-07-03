@@ -26,6 +26,7 @@ public:
     void rotateCW();
     void togglePause();
     void holdPiece();
+    void rotateCCW();
 
     // Accessors
     const Board &getBoard() const;
@@ -44,6 +45,9 @@ public:
 
     TetrominoType getHoldType() const;
     bool getHasHold() const;
+
+    const std::vector<int> &getClearingRows() const;
+    bool isClearing() const;
 
 private:
     Board board;
@@ -81,4 +85,8 @@ private:
     TetrominoType holdType;
     bool hasHold;
     bool holdUsed; // prevents holding twice per piece
+
+    std::vector<int> clearingRows;
+    Uint32 clearTimer;
+    bool clearing;
 };

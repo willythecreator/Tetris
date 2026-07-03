@@ -106,7 +106,38 @@ void Renderer::drawBoard(const Game &game)
         for (int c = 0; c < Board::COLS; ++c)
         {
             int v = board.get(r, c);
-            drawCell(r - Board::HIDDEN_ROWS, c, v);
+            if (v)
+            {
+                bool flashing = false;
+                if (game.isClearing())
+                {
+                    for (int fr : game.getClearingRows())
+                        if (fr == r)
+                        {
+                            flashing = true;
+                            break;
+                        }
+                }
+
+                if (flashing)
+                {
+                    Uint32 t = SDL_GetTicks();
+                    Uint8 brightness = (t / 60) % 2 == 0 ? 255 : 180;
+                    SDL_Rect rect = {BOARD_X + c * CELL, BOARD_Y + (r - Board::HIDDEN_ROWS) * CELL, CELL, CELL};
+                    SDL_SetRenderDrawColor(renderer, brightness, brightness, brightness, 255);
+                    SDL_RenderFillRect(renderer, &rect);
+                    SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
+                    SDL_RenderDrawRect(renderer, &rect);
+                }
+                else
+                {
+                    drawCell(r - Board::HIDDEN_ROWS, c, v);
+                }
+            }
+            else
+            {
+                drawCell(r - Board::HIDDEN_ROWS, c, 0);
+            }
         }
 
     // Ghost piece
