@@ -25,6 +25,7 @@ public:
     void hardDrop();
     void rotateCW();
     void togglePause();
+    void holdPiece();
 
     // Accessors
     const Board &getBoard() const;
@@ -40,6 +41,9 @@ public:
     int getActiveY() const { return activeY; }
     int getActiveRotation() const { return activeRotation; }
     int getGhostY() const { return ghostY(); }
+
+    TetrominoType getHoldType() const;
+    bool getHasHold() const;
 
 private:
     Board board;
@@ -59,6 +63,8 @@ private:
 
     // Gravity
     Uint32 dropTimer;
+    Uint32 lockTimer;
+    bool onGround;
     int getDropInterval() const;
 
     // Scoring
@@ -71,4 +77,8 @@ private:
     // Helpers
     void spawnPiece();
     void lockAndAdvance();
+
+    TetrominoType holdType;
+    bool hasHold;
+    bool holdUsed; // prevents holding twice per piece
 };

@@ -68,6 +68,7 @@ void Renderer::render(const Game &game)
 
     drawBoard(game);
     drawPreview(game);
+    drawHold(game);
     drawUI(game);
 
     if (game.getState() == GameState::Gameover)
@@ -228,6 +229,70 @@ void Renderer::drawPreview(const Game &game)
             {
                 SDL_Rect rect = {offX + c * CELL, offY + r * CELL,
                                  CELL, CELL};
+                SDL_Color col = getColor(colorIdx);
+                SDL_SetRenderDrawColor(renderer, col.r, col.g, col.b, 255);
+                SDL_RenderFillRect(renderer, &rect);
+                SDL_SetRenderDrawColor(renderer, col.r / 2, col.g / 2, col.b / 2, 255);
+                SDL_RenderDrawRect(renderer, &rect);
+            }
+}
+
+void Renderer::drawHold(const Game &game)
+{
+    // Dark background box (always visible even when empty)
+    SDL_Rect box = {HOLD_X - 5, HOLD_Y - 35, 4 * CELL + 10, 4 * CELL + 45};
+    SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
+    SDL_RenderFillRect(renderer, &box);
+    SDL_SetRenderDrawColor(renderer, 80, 80, 100, 255);
+    SDL_RenderDrawRect(renderer, &box);
+
+    if (!game.getHasHold())
+        return;
+
+    // "Hold" label
+    if (font)
+    {
+        SDL_Color white = {255, 255, 255, 255};
+        SDL_Surface *surf = TTF_RenderText_Blended(font, "HOLD", white);
+        if (surf)
+        {
+            SDL_Texture *tex = SDL_CreateTextureFromSurface(renderer, surf);
+            SDL_Rect dst = {HOLD_X, HOLD_Y - 30, surf->w, surf->h};
+            SDL_RenderCopy(renderer, tex, nullptr, &dst);
+            SDL_FreeSurface(surf);
+            SDL_DestroyTexture(tex);
+        }
+    }
+
+    static const std::array<Tetromino, 7> pieces = createTetrominoes();
+    TetrominoType hold = game.getHoldType();
+    int colorIdx = pieces[static_cast<int>(hold)].color;
+    const auto &shape = pieces[static_cast<int>(hold)].rotations[0];
+
+    int minC = 4, maxC = 0, minR = 4, maxR = 0;
+    for (int r = 0; r < 4; ++r)
+        for (int c = 0; c < 4; ++c)
+            if (shape[r][c])
+            {
+                if (c < minC)
+                    minC = c;
+                if (c > maxC)
+                    maxC = c;
+                if (r < minR)
+                    minR = r;
+                if (r > maxR)
+                    maxR = r;
+            }
+    int pW = (maxC - minC + 1) * CELL;
+    int pH = (maxR - minR + 1) * CELL;
+    int offX = HOLD_X + (4 * CELL - pW) / 2 - minC * CELL;
+    int offY = HOLD_Y + (4 * CELL - pH) / 2 - minR * CELL;
+
+    for (int r = 0; r < 4; ++r)
+        for (int c = 0; c < 4; ++c)
+            if (shape[r][c])
+            {
+                SDL_Rect rect = {offX + c * CELL, offY + r * CELL, CELL, CELL};
                 SDL_Color col = getColor(colorIdx);
                 SDL_SetRenderDrawColor(renderer, col.r, col.g, col.b, 255);
                 SDL_RenderFillRect(renderer, &rect);

@@ -11,6 +11,10 @@ void Game::init()
     lines = 0;
     level = 0;
     dropTimer = 0;
+    lockTimer = 0;
+    onGround = false;
+    hasHold = false;
+    holdUsed = false;
     state = GameState::Playing;
 
     bag.clear();
@@ -25,6 +29,9 @@ void Game::spawnPiece()
     activeRotation = 0;
     activeX = 3;
     activeY = 0;
+    lockTimer = 0;
+    onGround = false;
+    holdUsed = false;
     nextType = pullFromBag();
 
     if (board.isCollision(activeType, activeRotation, activeX, activeY))
@@ -83,14 +90,24 @@ void Game::update(Uint32 dt)
     if (state != GameState::Playing)
         return;
 
-    dropTimer += dt;
-    if (dropTimer >= getDropInterval())
+    bool touching = board.isCollision(activeType, activeRotation, activeX, activeY + 1);
+
+    if (touching)
     {
-        dropTimer = 0;
-        if (board.isCollision(activeType, activeRotation, activeX, activeY + 1))
+        lockTimer += dt;
+        if (lockTimer >= 1000)
             lockAndAdvance();
-        else
+    }
+    else
+    {
+        lockTimer = 0;
+        onGround = false;
+        dropTimer += dt;
+        if (dropTimer >= (Uint32)getDropInterval())
+        {
+            dropTimer = 0;
             ++activeY;
+        }
     }
 }
 
@@ -102,6 +119,7 @@ void Game::moveLeft()
         return;
     if (!board.isCollision(activeType, activeRotation, activeX - 1, activeY))
         --activeX;
+    lockTimer = 0;
 }
 
 void Game::moveRight()
@@ -110,6 +128,7 @@ void Game::moveRight()
         return;
     if (!board.isCollision(activeType, activeRotation, activeX + 1, activeY))
         ++activeX;
+    lockTimer = 0;
 }
 
 void Game::softDrop()
@@ -140,9 +159,74 @@ void Game::rotateCW()
 {
     if (state != GameState::Playing)
         return;
+
     int newRot = (activeRotation + 1) % 4;
-    if (!board.isCollision(activeType, newRot, activeX, activeY))
-        activeRotation = newRot;
+
+    static const int kicks[6][2] = {
+        {0, 0},
+        {-1, 0},
+        {1, 0},
+        {-2, 0},
+        {2, 0},
+        {0, -1},
+    };
+
+    static const int kicksI[7][2] = {
+        {0, 0},
+        {-1, 0},
+        {1, 0},
+        {-2, 0},
+        {0, -1},
+        {0, -2},
+    };
+
+    bool isI = {activeType == TetrominoType::I};
+    int numKicks = isI ? 7 : 6;
+
+    for (int i = 0; i < numKicks; ++i)
+    {
+        int dx = isI ? kicksI[i][0] : kicks[i][0];
+        int dy = isI ? kicks[i][1] : kicks[i][1];
+
+        if (!board.isCollision(activeType, newRot, activeX + dx, activeY + dy))
+        {
+            activeRotation = newRot;
+            activeX += dx;
+            activeY += dy;
+            lockTimer = 0;
+            return;
+        }
+    }
+}
+
+void Game::holdPiece()
+{
+    if (state != GameState::Playing || holdUsed)
+        return;
+
+    holdUsed = true;
+
+    if (!hasHold)
+    {
+        holdType = activeType;
+        hasHold = true;
+        spawnPiece();
+    }
+    else
+    {
+        TetrominoType temp = activeType;
+        activeType = holdType;
+        holdType = temp;
+
+        activeRotation = 0;
+        activeX = 3;
+        activeY = 0;
+        lockTimer = 0;
+        onGround = false;
+
+        if (board.isCollision(activeType, activeRotation, activeX, activeY))
+            state = GameState::Gameover;
+    }
 }
 
 void Game::togglePause()
@@ -171,3 +255,5 @@ int Game::getScore() const { return score; }
 int Game::getLine() const { return lines; }
 int Game::getLevel() const { return level; }
 GameState Game::getState() const { return state; }
+TetrominoType Game::getHoldType() const { return holdType; }
+bool Game::getHasHold() const { return hasHold; }

@@ -31,11 +31,22 @@ int main(int argc, char *argv[])
 
     Game game;
 
+    static const Uint32 DAS_DELAY = 150;
+    static const Uint32 DAS_REPEAT = 50;
+
+    bool leftHeld = false, rightHeld = false, downHeld = false;
+    Uint32 leftTimer = 0, rightTimer = 0, downTimer = 0;
+    bool leftRepeating = false, rightRepeating = false, downRepeating = false;
+
     bool running = true;
     Uint32 lastTicks = SDL_GetTicks();
 
     while (running)
     {
+        Uint32 currentTicks = SDL_GetTicks();
+        Uint32 dt = currentTicks - lastTicks;
+        lastTicks = currentTicks;
+
         SDL_Event e;
         while (SDL_PollEvent(&e))
         {
@@ -43,19 +54,32 @@ int main(int argc, char *argv[])
             {
                 running = false;
             }
-            else if (e.type == SDL_KEYDOWN)
+            else if (e.type == SDL_KEYDOWN && !e.key.repeat)
             {
                 switch (e.key.keysym.sym)
                 {
+                case SDLK_a:
                 case SDLK_LEFT:
                     game.moveLeft();
+                    leftHeld = true;
+                    leftTimer = 0;
+                    leftRepeating = false;
                     break;
+                case SDLK_d:
                 case SDLK_RIGHT:
                     game.moveRight();
+                    rightHeld = true;
+                    rightTimer = 0;
+                    rightRepeating = false;
                     break;
+                case SDLK_s:
                 case SDLK_DOWN:
                     game.softDrop();
+                    downHeld = true;
+                    downTimer = 0;
+                    downRepeating = false;
                     break;
+                case SDLK_w:
                 case SDLK_UP:
                     game.rotateCW();
                     break;
@@ -68,13 +92,67 @@ int main(int argc, char *argv[])
                 case SDLK_ESCAPE:
                     running = false;
                     break;
+                case SDLK_LSHIFT:
+                case SDLK_RSHIFT:
+                    game.holdPiece();
+                    break;
+                }
+            }
+            else if (e.type == SDL_KEYUP)
+            {
+                switch (e.key.keysym.sym)
+                {
+                case SDLK_a:
+                case SDLK_LEFT:
+                    leftHeld = false;
+                    leftRepeating = false;
+                    break;
+                case SDLK_d:
+                case SDLK_RIGHT:
+                    rightHeld = false;
+                    rightRepeating = false;
+                    break;
+                case SDLK_s:
+                case SDLK_DOWN:
+                    downHeld = false;
+                    downRepeating = false;
+                    break;
                 }
             }
         }
 
-        Uint32 currentTicks = SDL_GetTicks();
-        Uint32 dt = currentTicks - lastTicks;
-        lastTicks = currentTicks;
+        if (leftHeld)
+        {
+            leftTimer += dt;
+            if (leftTimer >= (leftRepeating ? DAS_REPEAT : DAS_DELAY))
+            {
+                leftTimer = 0;
+                leftRepeating = true;
+                game.moveLeft();
+            }
+        }
+        if (rightHeld)
+        {
+            rightTimer += dt;
+            if (rightTimer >= (rightRepeating ? DAS_REPEAT : DAS_DELAY))
+            {
+                rightTimer = 0;
+                rightRepeating = true;
+                game.moveRight();
+            }
+        }
+        if (downHeld)
+        {
+            downTimer += dt;
+            if (downTimer >= (downRepeating ? 30 : DAS_DELAY))
+            {
+                downTimer = 0;
+                downRepeating = true;
+                game.softDrop();
+            }
+        }
+
+        game.update(dt);
 
         game.update(dt);
         renderer.render(game);

@@ -18,6 +18,8 @@ private:
     static constexpr int BOARD_Y = 20;
     static constexpr int PREVIEW_X = 340;
     static constexpr int PREVIEW_Y = 80;
+    static constexpr int HOLD_X = 340;
+    static constexpr int HOLD_Y = 360;
     static constexpr int WIN_W = 480;
     static constexpr int WIN_H = 640;
 
@@ -33,4 +35,5 @@ private:
     void drawUI(const Game &game);
     void drawOverlay(const char *text);
     SDL_Color getColor(int idx) const;
+    void drawHold(const Game &game);
 };
