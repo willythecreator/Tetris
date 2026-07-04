@@ -4,6 +4,7 @@
 
 #include "game.h"
 #include "renderer.h"
+#include "audio.h"
 
 int main(int argc, char *argv[])
 {
@@ -21,6 +22,11 @@ int main(int argc, char *argv[])
     }
 
     Renderer renderer;
+    Audio audio;
+    if (!audio.init())
+        std::cerr << "Audio init failed, continuing without sound" << std::endl;
+    audio.playMusic();
+
     if (!renderer.init())
     {
         std::cerr << "Renderer init failed" << std::endl;
@@ -29,7 +35,7 @@ int main(int argc, char *argv[])
         return 1;
     }
 
-    Game game;
+    Game game(audio);
 
     static const Uint32 DAS_DELAY = 150;
     static const Uint32 DAS_REPEAT = 50;

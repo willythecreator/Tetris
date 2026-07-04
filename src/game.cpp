@@ -2,7 +2,7 @@
 #include <algorithm>
 #include <random>
 
-Game::Game() { init(); }
+Game::Game(Audio &audio) : audio(audio) { init(); }
 
 void Game::init()
 {
@@ -45,6 +45,7 @@ void Game::spawnPiece()
 void Game::lockAndAdvance()
 {
     board.lock(activeType, activeRotation, activeX, activeY);
+    audio.playLock();
 
     // Find which rows are full
     clearingRows.clear();
@@ -123,6 +124,10 @@ void Game::update(Uint32 dt)
             lines += cleared;
             level = lines / 10;
 
+            if (cleared == 4)
+                audio.playTetris();
+            else if (cleared > 0)
+                audio.playClear();
             spawnPiece();
         }
         return; // freeze everything else during animation
@@ -156,8 +161,11 @@ void Game::moveLeft()
     if (state != GameState::Playing)
         return;
     if (!board.isCollision(activeType, activeRotation, activeX - 1, activeY))
+    {
         --activeX;
-    lockTimer = 0;
+        audio.playMove();
+        lockTimer = 0;
+    }
 }
 
 void Game::moveRight()
@@ -165,8 +173,11 @@ void Game::moveRight()
     if (state != GameState::Playing)
         return;
     if (!board.isCollision(activeType, activeRotation, activeX + 1, activeY))
+    {
         ++activeX;
-    lockTimer = 0;
+        audio.playMove();
+        lockTimer = 0;
+    }
 }
 
 void Game::softDrop()
@@ -214,6 +225,7 @@ void Game::rotateCW()
         {-1, 0},
         {1, 0},
         {-2, 0},
+        {2, 0},
         {0, -1},
         {0, -2},
     };
@@ -224,7 +236,7 @@ void Game::rotateCW()
     for (int i = 0; i < numKicks; ++i)
     {
         int dx = isI ? kicksI[i][0] : kicks[i][0];
-        int dy = isI ? kicks[i][1] : kicks[i][1];
+        int dy = isI ? kicksI[i][1] : kicks[i][1];
 
         if (!board.isCollision(activeType, newRot, activeX + dx, activeY + dy))
         {
@@ -232,6 +244,7 @@ void Game::rotateCW()
             activeX += dx;
             activeY += dy;
             lockTimer = 0;
+            audio.playRotate();
             return;
         }
     }
@@ -258,6 +271,7 @@ void Game::rotateCCW()
         {1, 0},
         {-1, 0},
         {2, 0},
+        {-2, 0},
         {0, -1},
         {0, -2},
     };
@@ -268,13 +282,14 @@ void Game::rotateCCW()
     for (int i = 0; i < numKicks; ++i)
     {
         int dx = isI ? kicksI[i][0] : kicks[i][0];
-        int dy = isI ? kicks[i][1] : kicks[i][1];
+        int dy = isI ? kicksI[i][1] : kicks[i][1];
 
         if (!board.isCollision(activeType, newRot, activeX + dx, activeY + dy))
         {
             activeRotation = newRot;
             activeX += dx;
             activeY += dy;
+            audio.playRotate();
             lockTimer = 0;
             return;
         }
@@ -307,16 +322,27 @@ void Game::holdPiece()
         onGround = false;
 
         if (board.isCollision(activeType, activeRotation, activeX, activeY))
+        {
             state = GameState::Gameover;
+            audio.playGameOver();
+        }
     }
 }
 
 void Game::togglePause()
 {
     if (state == GameState::Playing)
+    {
         state = GameState::Paused;
+        audio.pauseMusic();
+        audio.playOpenMenu();
+    }
     else if (state == GameState::Paused)
+    {
         state = GameState::Playing;
+        audio.resumeMusic();
+        audio.playExitMenu();
+    }
 }
 
 // Ghost Piece

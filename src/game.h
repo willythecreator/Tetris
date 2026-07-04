@@ -2,6 +2,7 @@
 #include "board.h"
 #include <SDL2/SDL.h>
 #include <vector>
+#include "audio.h"
 
 enum class GameState
 {
@@ -13,7 +14,7 @@ enum class GameState
 class Game
 {
 public:
-    Game();
+    Game(Audio &audio);
 
     void init();
     void update(Uint32 dt);
@@ -89,4 +90,6 @@ private:
     std::vector<int> clearingRows;
     Uint32 clearTimer;
     bool clearing;
+
+    Audio &audio;
 };
